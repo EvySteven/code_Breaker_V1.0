@@ -246,8 +246,7 @@ body {
 
 /* Game Board */
 .game-board {
-    width: 100%;
-    max-width: 500px;
+    width: min(100%, 500px);
     background: rgba(255, 255, 255, 0.05);
     border-radius: var(--radius);
     padding: 25px;
@@ -256,6 +255,7 @@ body {
 
 .code-display {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     gap: 15px;
     margin-bottom: 30px;
@@ -518,6 +518,141 @@ body {
     padding: 15px;
     font-size: 1.1rem;
 }
+
+/* Responsive mobile */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+
+    .menu h1 {
+        font-size: 2.4rem;
+    }
+
+    .title, .subtitle {
+        width: 100%;
+    }
+
+    .levels-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .game-board {
+        max-width: 100%;
+        padding: 20px;
+    }
+
+    .game-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 15px;
+    }
+
+    .game-header h2 {
+        font-size: 1.25rem;
+    }
+
+    .timer {
+        font-size: 1rem;
+    }
+
+    .code-display {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+        padding: 15px;
+    }
+
+    .code-digit {
+        width: 50px;
+        height: 50px;
+        font-size: 1.6rem;
+    }
+
+    .guess-input {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .digit-input {
+        width: 44px;
+        height: 44px;
+        font-size: 1.3rem;
+    }
+
+    .btn {
+        width: 100%;
+        margin: 5px 0;
+        padding: 12px;
+    }
+
+    .button-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .feedback-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .feedback-guess {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 10px;
+    }
+
+    .levels-grid,
+    .game-info,
+    .game-board,
+    .stats,
+    .hints,
+    .result-content {
+        padding: 15px;
+    }
+
+    .menu h1 {
+        font-size: 2rem;
+    }
+
+    .level-card {
+        padding: 12px;
+    }
+
+    .levels-container {
+        grid-template-columns: 1fr;
+    }
+
+    .code-display {
+        gap: 10px;
+    }
+
+    .code-digit {
+        width: 44px;
+        height: 44px;
+    }
+
+    .digit-input {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+
+    .result-content {
+        padding: 20px;
+        width: 100%;
+    }
+
+    .result-content h2 {
+        font-size: 2rem;
+    }
+}
+
 
 /* Responsive */
 @media (max-width: 768px) {
