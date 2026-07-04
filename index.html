@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Breaker - 12 Niveaux</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Menu Principal -->
+        <div id="main-menu" class="menu">
+            <h1>🔐 Code Breaker</h1>
+            <p class="subtitle">Devinez le code secret en 12 niveaux !</p>
+            
+            <div class="levels-grid">
+                <h2>Niveaux de difficulté</h2>
+                <div class="levels-container" id="levels-container">
+                </div>
+            </div>
+            
+            <div class="stats">
+                <p>Niveau actuel: <span id="current-level-display">1</span></p>
+                <p>Progression: <span id="completed-levels">0</span>/12</p>
+            </div>
+        </div>
+
+        <!-- Écran de jeu -->
+        <div id="game-screen" class="hidden">
+            <header class="game-header">
+                <button id="back-to-menu" class="btn-icon" title="Retour au menu">⬅️</button>
+                <h2>Niveau <span id="level-number">1</span>: <span id="level-name">Débutant</span></h2>
+                <div class="timer" id="timer">⏳ 00:00</div>
+            </header>
+
+            <div class="game-info">
+                <p id="level-description">Trouvez le code à 3 chiffres. 10 tentatives.</p>
+                <div class="attempts-left">
+                    Tentatives restantes: <span id="remaining-attempts">10</span>
+                </div>
+            </div>
+
+            <div class="game-board">
+                <div class="code-display" id="code-display">
+                    <div class="code-digit">?</div>
+                    <div class="code-digit">?</div>
+                    <div class="code-digit">?</div>
+                    <div class="code-digit hidden">?</div>
+                    <div class="code-digit hidden">?</div>
+                </div>
+
+                <div class="input-section">
+                    <div class="guess-input" id="guess-input-container">
+                        <input type="text" id="guess-input-1" maxlength="1" pattern="[0-9]" class="digit-input" autofocus>
+                        <input type="text" id="guess-input-2" maxlength="1" pattern="[0-9]" class="digit-input">
+                        <input type="text" id="guess-input-3" maxlength="1" pattern="[0-9]" class="digit-input">
+                        <input type="text" id="guess-input-4" maxlength="1" pattern="[0-9]" class="digit-input hidden">
+                        <input type="text" id="guess-input-5" maxlength="1" pattern="[0-9]" class="digit-input hidden">
+                    </div>
+                    <div class="button-group">
+                        <button id="submit-guess" class="btn btn-primary">Vérifier</button>
+                        <button id="clear-guess" class="btn btn-secondary">Effacer</button>
+                    </div>
+                </div>
+
+                <div class="feedback-section" id="feedback-section">
+                </div>
+            </div>
+
+            <div class="game-footer">
+                <div class="hints" id="hints">
+                    <p>Indice: <span id="hint-text">Essayez de deviner les chiffres un par un.</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Écran de victoire -->
+        <div id="result-screen" class="result-screen hidden">
+            <div class="result-content">
+                <h2 id="result-title">🎉 Félicitations !</h2>
+                <p id="result-message">Vous avez trouvé le code !</p>
+                <div class="result-details">
+                    <p>Code: <span id="result-code"></span></p>
+                    <p>Tentatives utilisées: <span id="result-attempts"></span>/<span id="result-max-attempts"></span></p>
+                    <p>Temps: <span id="result-time">00:00</span></p>
+                    <p>Score: <span id="result-score">100%</span></p>
+                </div>
+                <div class="result-actions">
+                    <button id="next-level" class="btn btn-primary">Niveau suivant →</button>
+                    <button id="retry-level" class="btn btn-secondary">Recommencer</button>
+                    <button id="return-to-menu" class="btn">Retour au menu</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Écran de défaite -->
+        <div id="gameover-screen" class="result-screen hidden">
+            <div class="result-content">
+                <h2>💀 Game Over</h2>
+                <p id="gameover-message">Vous avez épuisé toutes vos tentatives.</p>
+                <div class="result-details">
+                    <p>Le code était: <span id="gameover-code"></span></p>
+                </div>
+                <div class="result-actions">
+                    <button id="retry-gameover" class="btn btn-primary">Recommencer</button>
+                    <button id="menu-gameover" class="btn">Retour au menu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration des niveaux
+        const LEVELS = [
+            { id: 1, name: 'Débutant', codeLength: 3, maxAttempts: 10, hasRepeats: false, timeLimit: null, difficulty: 1 },
+            { id: 2, name: 'Facile', codeLength: 3, maxAttempts: 8, hasRepeats: false, timeLimit: null, difficulty: 1 },
+            { id: 3, name: 'Apprenti', codeLength: 3, maxAttempts: 8, hasRepeats: true, timeLimit: null, difficulty: 2 },
+            { id: 4, name: 'Moyen', codeLength: 3, maxAttempts: 6, hasRepeats: true, timeLimit: 120, difficulty: 3 },
+            { id: 5, name: 'Intermédiaire', codeLength: 3, maxAttempts: 5, hasRepeats: true, timeLimit: 90, difficulty: 3 },
+            { id: 6, name: 'Avancé', codeLength: 3, maxAttempts: 4, hasRepeats: true, timeLimit: 60, difficulty: 4 },
+            { id: 7, name: 'Expert', codeLength: 4, maxAttempts: 10, hasRepeats: false, timeLimit: 120, difficulty: 5 },
+            { id: 8, name: 'Spécialiste', codeLength: 4, maxAttempts: 8, hasRepeats: true, timeLimit: 90, difficulty: 6 },
+            { id: 9, name: 'Maître', codeLength: 4, maxAttempts: 6, hasRepeats: true, timeLimit: 60, difficulty: 7 },
+            { id: 10, name: 'Grand Maître', codeLength: 4, maxAttempts: 5, hasRepeats: true, timeLimit: 45, difficulty: 8 },
+            { id: 11, name: 'Légendaire', codeLength: 5, maxAttempts: 8, hasRepeats: true, timeLimit: 120, difficulty: 9 },
+            { id: 12, name: 'Dieu du Code', codeLength: 5, maxAttempts: 5, hasRepeats: true, timeLimit: 60, difficulty: 10 }
+        ];
+
+        // Messages de feedback
+        const FEEDBACK_MESSAGES = {
+            allCorrect: 'Tous les chiffres sont corrects et bien placés ! 🎯',
+            hints: [
+                'Essayez de deviner les chiffres un par un.',
+                'Cherchez les chiffres qui reviennent souvent.',
+                'Éliminez les chiffres qui ne fonctionnent jamais.',
+                'Testez différentes combinaisons.',
+                'Faites attention aux positions des chiffres.',
+                'Utilisez la logique d\'élimination.',
+                'Les répétitions peuvent vous aider.',
+                'Prenez votre temps pour réfléchir.',
+                'Notez vos tentatives précédentes.',
+                'Concentrez-vous sur un chiffre à la fois.'
+            ]
+        };
+
+        // État du jeu
+        let gameState = {
+            currentLevel: 1,
+            currentCode: '',
+            attempts: [],
+            remainingAttempts: 0,
+            maxAttempts: 0,
+            codeLength: 3,
+            hasRepeats: false,
+            timeLimit: null,
+            timer: null,
+            timeElapsed: 0,
+            gameStarted: false
+        };
+
+        // Chargement des données sauvegardées
+        function loadGameData() {
+            const savedData = localStorage.getItem('codeBreakerData');
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                gameState.currentLevel = data.currentLevel || 1;
+                return data;
+            }
+            return { currentLevel: 1, completedLevels: [] };
+        }
+
+        // Sauvegarde des données
+        function saveGameData() {
+            const data = {
+                currentLevel: gameState.currentLevel,
+                completedLevels: getCompletedLevels()
+            };
+            localStorage.setItem('codeBreakerData', JSON.stringify(data));
+        }
+
+        // Récupère les niveaux complétés
+        function getCompletedLevels() {
+            const savedData = localStorage.getItem('codeBreakerData');
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                return data.completedLevels || [];
+            }
+            return [];
+        }
+
+        // Génère un code aléatoire
+        function generateRandomCode(length, allowRepeats) {
+            let code = '';
+            const digits = '0123456789';
+            for (let i = 0; i < length; i++) {
+                let digit;
+                do {
+                    digit = digits[Math.floor(Math.random() * digits.length)];
+                } while (!allowRepeats && code.includes(digit));
+                code += digit;
+            }
+            return code;
+        }
+
+        // Vérifie la proposition
+        function checkGuess(guess, code) {
+            if (guess.length !== code.length) {
+                return { correct: false, correctCount: 0, presentCount: 0, message: 'Le code doit avoir la bonne longueur' };
+            }
+
+            let correctCount = 0;
+            let presentCount = 0;
+            const usedIndices = new Set();
+
+            for (let i = 0; i < guess.length; i++) {
+                if (guess[i] === code[i]) {
+                    correctCount++;
+                    usedIndices.add(i);
+                }
+            }
+
+            for (let i = 0; i < guess.length; i++) {
+                if (usedIndices.has(i)) continue;
+                for (let j = 0; j < code.length; j++) {
+                    if (j !== i && guess[i] === code[j] && !usedIndices.has(j)) {
+                        presentCount++;
+                        usedIndices.add(j);
+                        break;
+                    }
+                }
+            }
+
+            const allCorrect = correctCount === code.length;
+            let message = '';
+
+            if (allCorrect) {
+                message = FEEDBACK_MESSAGES.allCorrect;
+            } else if (correctCount > 0 && presentCount > 0) {
+                message = `${correctCount} chiffre(s) correct(s) et bien placé(s), ${presentCount} chiffre(s) présent(s) mais mal placé(s)`;
+            } else if (correctCount > 0) {
+                message = `${correctCount} chiffre(s) correct(s) et bien placé(s)`;
+            } else if (presentCount > 0) {
+                message = `${presentCount} chiffre(s) présent(s) mais mal placé(s)`;
+            } else {
+                message = 'Aucun chiffre n\'est correct';
+            }
+
+            return { correct: allCorrect, correctCount, presentCount, message };
+        }
+
+        // Formate le temps
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Met à jour le timer
+        function updateTimer() {
+            gameState.timeElapsed++;
+            const timeDisplay = document.getElementById('timer');
+            if (timeDisplay) {
+                timeDisplay.textContent = `⏳ ${formatTime(gameState.timeElapsed)}`;
+            }
+            if (gameState.timeLimit && gameState.timeElapsed >= gameState.timeLimit) {
+                endGame(false, 'Temps écoulé !');
+            }
+        }
+
+        // Démarre le timer
+        function startTimer() {
+            if (gameState.timer) clearInterval(gameState.timer);
+            gameState.timeElapsed = 0;
+            gameState.timer = setInterval(updateTimer, 1000);
+        }
+
+        // Arrête le timer
+        function stopTimer() {
+            if (gameState.timer) {
+                clearInterval(gameState.timer);
+                gameState.timer = null;
+            }
+        }
+
+        // Initialise le niveau
+        function initLevel(levelId) {
+            const level = LEVELS.find(l => l.id === levelId);
+            if (!level) return;
+
+            gameState.currentLevel = levelId;
+            gameState.currentCode = generateRandomCode(level.codeLength, level.hasRepeats);
+            gameState.attempts = [];
+            gameState.remainingAttempts = level.maxAttempts;
+            gameState.maxAttempts = level.maxAttempts;
+            gameState.codeLength = level.codeLength;
+            gameState.hasRepeats = level.hasRepeats;
+            gameState.timeLimit = level.timeLimit;
+            gameState.timeElapsed = 0;
+            gameState.gameStarted = false;
+
+            updateLevelDisplay(level);
+            updateAttemptsDisplay();
+            clearFeedback();
+            clearGuessInputs();
+            updateCodeDisplay();
+            hideExtraInputs();
+
+            stopTimer();
+            if (level.timeLimit) {
+                startTimer();
+            } else {
+                document.getElementById('timer').textContent = '⏳ No limit';
+            }
+
+            updateHint();
+            saveGameData();
+        }
+
+        // Met à jour l'affichage du niveau
+        function updateLevelDisplay(level) {
+            const levelNumber = document.getElementById('level-number');
+            const levelName = document.getElementById('level-name');
+            const levelDescription = document.getElementById('level-description');
+
+            if (levelNumber) levelNumber.textContent = level.id;
+            if (levelName) levelName.textContent = level.name;
+            if (levelDescription) {
+                levelDescription.textContent = `Trouvez le code à ${level.codeLength} chiffres. ${level.maxAttempts} tentatives.`;
+                if (level.timeLimit) {
+                    levelDescription.textContent += ` Temps limité: ${formatTime(level.timeLimit)}.`;
+                }
+            }
+        }
+
+        // Met à jour l'affichage des tentatives restantes
+        function updateAttemptsDisplay() {
+            const remainingDisplay = document.getElementById('remaining-attempts');
+            if (remainingDisplay) {
+                remainingDisplay.textContent = gameState.remainingAttempts;
+                if (gameState.remainingAttempts <= 2) {
+                    remainingDisplay.classList.add('pulse');
+                    setTimeout(() => { remainingDisplay.classList.remove('pulse'); }, 1000);
+                }
+            }
+        }
+
+        // Efface les feedbacks
+        function clearFeedback() {
+            const feedbackSection = document.getElementById('feedback-section');
+            if (feedbackSection) feedbackSection.innerHTML = '';
+        }
+
+        // Efface les inputs de devinette
+        function clearGuessInputs() {
+            for (let i = 1; i <= 5; i++) {
+                const input = document.getElementById(`guess-input-${i}`);
+                if (input) {
+                    input.value = '';
+                    input.classList.remove('error');
+                }
+            }
+        }
+
+        // Masque les inputs inutiles
+        function hideExtraInputs() {
+            for (let i = 1; i <= 5; i++) {
+                const input = document.getElementById(`guess-input-${i}`);
+                if (input) {
+                    if (i > gameState.codeLength) {
+                        input.classList.add('hidden');
+                    } else {
+                        input.classList.remove('hidden');
+                    }
+                }
+            }
+            const codeDigits = document.querySelectorAll('.code-digit');
+            codeDigits.forEach((digit, index) => {
+                if (index < gameState.codeLength) {
+                    digit.classList.remove('hidden');
+                    digit.textContent = '?';
+                } else {
+                    digit.classList.add('hidden');
+                }
+            });
+        }
+
+        // Met à jour l'affichage du code
+        function updateCodeDisplay(revealed = false) {
+            const codeDigits = document.querySelectorAll('.code-digit:not(.hidden)');
+            if (revealed) {
+                gameState.currentCode.split('').forEach((digit, index) => {
+                    if (codeDigits[index]) {
+                        codeDigits[index].textContent = digit;
+                        codeDigits[index].classList.add('revealed');
+                    }
+                });
+            } else {
+                codeDigits.forEach(digit => {
+                    digit.textContent = '?';
+                    digit.classList.remove('revealed');
+                });
+            }
+        }
+
+        // Met à jour l'indice
+        function updateHint() {
+            const hintText = document.getElementById('hint-text');
+            if (hintText) {
+                const randomHint = FEEDBACK_MESSAGES.hints[Math.floor(Math.random() * FEEDBACK_MESSAGES.hints.length)];
+                hintText.textContent = randomHint;
+            }
+        }
+
+        // Ajoute un feedback
+        function addFeedback(guess, result) {
+            const feedbackSection = document.getElementById('feedback-section');
+            if (!feedbackSection) return;
+
+            const feedbackItem = document.createElement('div');
+            feedbackItem.className = 'feedback-item';
+
+            if (result.correct) {
+                feedbackItem.classList.add('correct');
+            } else if (result.correctCount > 0 || result.presentCount > 0) {
+                feedbackItem.classList.add('partial');
+            } else {
+                feedbackItem.classList.add('wrong');
+            }
+
+            const guessElement = document.createElement('div');
+            guessElement.className = 'feedback-guess';
+            guess.split('').forEach(digit => {
+                const digitElement = document.createElement('div');
+                digitElement.className = 'feedback-digit';
+                digitElement.textContent = digit;
+                guessElement.appendChild(digitElement);
+            });
+
+            const textElement = document.createElement('div');
+            textElement.className = 'feedback-text';
+            textElement.textContent = result.message;
+
+            feedbackItem.appendChild(guessElement);
+            feedbackItem.appendChild(textElement);
+            feedbackSection.prepend(feedbackItem);
+        }
+
+        // Termine le jeu
+        function endGame(victory, message = '') {
+            stopTimer();
+            if (victory) {
+                const resultScreen = document.getElementById('result-screen');
+                const resultTitle = document.getElementById('result-title');
+                const resultMessage = document.getElementById('result-message');
+                const resultCode = document.getElementById('result-code');
+                const resultAttempts = document.getElementById('result-attempts');
+                const resultMaxAttempts = document.getElementById('result-max-attempts');
+                const resultTime = document.getElementById('result-time');
+                const resultScore = document.getElementById('result-score');
+
+                if (resultTitle) resultTitle.textContent = '🎉 Félicitations !';
+                if (resultMessage) resultMessage.textContent = message || 'Vous avez trouvé le code !';
+                if (resultCode) resultCode.textContent = gameState.currentCode;
+                if (resultAttempts) resultAttempts.textContent = gameState.maxAttempts - gameState.remainingAttempts + 1;
+                if (resultMaxAttempts) resultMaxAttempts.textContent = gameState.maxAttempts;
+                if (resultTime) resultTime.textContent = formatTime(gameState.timeElapsed);
+
+                const attemptsUsed = gameState.maxAttempts - gameState.remainingAttempts + 1;
+                const timePenalty = gameState.timeLimit ? Math.min(100, (gameState.timeElapsed / gameState.timeLimit) * 50) : 0;
+                const score = Math.max(0, 100 - (attemptsUsed / gameState.maxAttempts * 50) - timePenalty);
+                if (resultScore) resultScore.textContent = Math.round(score) + '%';
+
+                if (resultScreen) resultScreen.classList.remove('hidden');
+                markLevelAsCompleted();
+            } else {
+                const gameoverScreen = document.getElementById('gameover-screen');
+                const gameoverMessage = document.getElementById('gameover-message');
+                const gameoverCode = document.getElementById('gameover-code');
+
+                if (gameoverMessage) gameoverMessage.textContent = message || 'Vous avez épuisé toutes vos tentatives.';
+                if (gameoverCode) gameoverCode.textContent = gameState.currentCode;
+                updateCodeDisplay(true);
+                if (gameoverScreen) gameoverScreen.classList.remove('hidden');
+            }
+            document.getElementById('game-screen').classList.add('hidden');
+        }
+
+        // Marque un niveau comme complété
+        function markLevelAsCompleted() {
+            const savedData = localStorage.getItem('codeBreakerData');
+            let data = { currentLevel: gameState.currentLevel, completedLevels: [] };
+            if (savedData) data = JSON.parse(savedData);
+            if (!data.completedLevels.includes(gameState.currentLevel)) {
+                data.completedLevels.push(gameState.currentLevel);
+            }
+            if (gameState.currentLevel === data.currentLevel) {
+                data.currentLevel = Math.min(gameState.currentLevel + 1, LEVELS.length);
+            }
+            localStorage.setItem('codeBreakerData', JSON.stringify(data));
+            renderLevels();
+        }
+
+        // Génère les cartes de niveaux
+        function renderLevels() {
+            const levelsContainer = document.getElementById('levels-container');
+            if (!levelsContainer) return;
+
+            levelsContainer.innerHTML = '';
+            const completedLevels = getCompletedLevels();
+            const savedData = loadGameData();
+
+            LEVELS.forEach(level => {
+                const levelCard = document.createElement('div');
+                levelCard.className = 'level-card';
+                if (completedLevels.includes(level.id)) levelCard.classList.add('completed');
+                if (level.id === savedData.currentLevel) levelCard.classList.add('current');
+                if (level.id > savedData.currentLevel && !completedLevels.includes(level.id)) levelCard.classList.add('locked');
+
+                levelCard.innerHTML = `
+                    <span class="difficulty difficulty-${level.difficulty}">★${level.difficulty}</span>
+                    <div class="level-number">${level.id}</div>
+                    <div class="level-name">${level.name}</div>
+                `;
+
+                if (!levelCard.classList.contains('locked')) {
+                    levelCard.addEventListener('click', () => startGame(level.id));
+                }
+                levelsContainer.appendChild(levelCard);
+            });
+            updateStats();
+        }
+
+        // Met à jour les statistiques
+        function updateStats() {
+            const completedLevels = getCompletedLevels();
+            const currentLevelDisplay = document.getElementById('current-level-display');
+            const completedLevelsDisplay = document.getElementById('completed-levels');
+            if (currentLevelDisplay) currentLevelDisplay.textContent = loadGameData().currentLevel;
+            if (completedLevelsDisplay) completedLevelsDisplay.textContent = `${completedLevels.length}/12`;
+        }
+
+        // Démarre le jeu
+        function startGame(levelId) {
+            const savedData = loadGameData();
+            const level = LEVELS.find(l => l.id === levelId);
+            if (!level) return;
+            if (level.id > savedData.currentLevel && !getCompletedLevels().includes(level.id)) {
+                alert('Ce niveau est verrouillé ! Complétez les niveaux précédents pour le débloquer.');
+                return;
+            }
+
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('gameover-screen').classList.add('hidden');
+
+            initLevel(levelId);
+            setTimeout(() => {
+                const firstInput = document.getElementById('guess-input-1');
+                if (firstInput) firstInput.focus();
+            }, 100);
+        }
+
+        // Gère la soumission de la devinette
+        function handleGuessSubmission() {
+            let guess = '';
+            for (let i = 1; i <= gameState.codeLength; i++) {
+                const input = document.getElementById(`guess-input-${i}`);
+                if (input && input.value) {
+                    guess += input.value;
+                } else {
+                    input.classList.add('error');
+                    setTimeout(() => input.classList.remove('error'), 500);
+                    return;
+                }
+            }
+
+            if (guess.length !== gameState.codeLength) {
+                alert(`Le code doit avoir ${gameState.codeLength} chiffres !`);
+                return;
+            }
+            if (!/^\d+$/.test(guess)) {
+                alert('Seuls les chiffres sont autorisés !');
+                return;
+            }
+            if (!gameState.hasRepeats) {
+                const uniqueDigits = new Set(guess.split(''));
+                if (uniqueDigits.size !== guess.length) {
+                    alert('Les chiffres ne doivent pas se répéter !');
+                    return;
+                }
+            }
+
+            gameState.remainingAttempts--;
+            updateAttemptsDisplay();
+            const result = checkGuess(guess, gameState.currentCode);
+            gameState.attempts.push({ guess, result });
+            addFeedback(guess, result);
+
+            if (result.correct) {
+                endGame(true);
+                return;
+            }
+            if (gameState.remainingAttempts <= 0) {
+                endGame(false);
+                return;
+            }
+
+            clearGuessInputs();
+            setTimeout(() => {
+                const firstInput = document.getElementById('guess-input-1');
+                if (firstInput) firstInput.focus();
+            }, 100);
+            updateHint();
+        }
+
+        // Gère l'appui sur Entrée
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') handleGuessSubmission();
+        }
+
+        // Gère le focus entre les inputs
+        function setupInputNavigation() {
+            for (let i = 1; i <= 5; i++) {
+                const input = document.getElementById(`guess-input-${i}`);
+                if (input) {
+                    input.addEventListener('input', (e) => {
+                        if (e.target.value.length === 1) {
+                            const nextInput = document.getElementById(`guess-input-${i + 1}`);
+                            if (nextInput && !nextInput.classList.contains('hidden')) nextInput.focus();
+                        }
+                    });
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Backspace' && e.target.value.length === 0) {
+                            const prevInput = document.getElementById(`guess-input-${i - 1}`);
+                            if (prevInput && !prevInput.classList.contains('hidden')) prevInput.focus();
+                        }
+                    });
+                }
+            }
+        }
+
+        // Efface la devinette actuelle
+        function clearGuess() {
+            clearGuessInputs();
+            const firstInput = document.getElementById('guess-input-1');
+            if (firstInput) firstInput.focus();
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', () => {
+            renderLevels();
+            setupInputNavigation();
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !document.getElementById('game-screen').classList.contains('hidden')) {
+                    document.getElementById('game-screen').classList.add('hidden');
+                    document.getElementById('main-menu').classList.remove('hidden');
+                    stopTimer();
+                }
+            });
+
+            document.getElementById('back-to-menu')?.addEventListener('click', () => {
+                document.getElementById('game-screen').classList.add('hidden');
+                document.getElementById('main-menu').classList.remove('hidden');
+                stopTimer();
+            });
+
+            document.getElementById('submit-guess')?.addEventListener('click', handleGuessSubmission);
+            document.getElementById('clear-guess')?.addEventListener('click', clearGuess);
+
+            for (let i = 1; i <= 5; i++) {
+                document.getElementById(`guess-input-${i}`)?.addEventListener('keypress', handleKeyPress);
+            }
+
+            document.getElementById('next-level')?.addEventListener('click', () => {
+                const savedData = loadGameData();
+                if (savedData.currentLevel <= LEVELS.length) {
+                    startGame(savedData.currentLevel);
+                } else {
+                    alert('Félicitations ! Vous avez complété tous les niveaux !');
+                    document.getElementById('result-screen').classList.add('hidden');
+                    document.getElementById('main-menu').classList.remove('hidden');
+                }
+            });
+
+            document.getElementById('retry-level')?.addEventListener('click', () => startGame(gameState.currentLevel));
+            document.getElementById('return-to-menu')?.addEventListener('click', () => {
+                document.getElementById('result-screen').classList.add('hidden');
+                document.getElementById('main-menu').classList.remove('hidden');
+            });
+
+            document.getElementById('retry-gameover')?.addEventListener('click', () => startGame(gameState.currentLevel));
+            document.getElementById('menu-gameover')?.addEventListener('click', () => {
+                document.getElementById('gameover-screen').classList.add('hidden');
+                document.getElementById('main-menu').classList.remove('hidden');
+            });
+
+            document.querySelectorAll('.digit-input').forEach(input => {
+                input.addEventListener('focus', () => {
+                    if (!gameState.gameStarted) {
+                        gameState.gameStarted = true;
+                        if (gameState.timeLimit) startTimer();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
