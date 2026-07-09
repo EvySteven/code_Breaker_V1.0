@@ -16,7 +16,7 @@ const LEVELS = [
 
 // Messages de feedback
 const FEEDBACK_MESSAGES = {
-    allCorrect: 'Tous les chiffres sont corrects et bien placés ! 🎯',
+    allCorrect: 'Tous les chiffres sont corrects et bien placés ! ✓',
     hints: [
         'Essayez de deviner les chiffres un par un.',
         'Cherchez les chiffres qui reviennent souvent.',
